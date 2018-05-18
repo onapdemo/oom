@@ -1,0 +1,11 @@
+nsPrefix: onap
+pullPolicy: Always
+nodePortPrefix: 302
+image:
+  readiness: oomk8s/readiness-check:1.0.0
+  sdcKibana: elhaydox/sdc-kibana:azure
+  sdcFrontend: elhaydox/sdc-frontend:azure
+  sdcElasticsearch: elhaydox/sdc-elasticsearch:azure
+  sdcCassandra: elhaydox/sdc-cassandra:azure
+  sdcBackend: elhaydox/sdc-backend:azure
+  filebeat: docker.elastic.co/beats/filebeat:5.5.0

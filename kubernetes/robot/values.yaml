@@ -1,0 +1,6 @@
+nsPrefix: onap
+pullPolicy: Always
+nodePortPrefix: 302
+image:
+  testsuite: elhaydox/testsuite:latest
+

@@ -1,0 +1,31 @@
+#{{ if not .Values.disablePolicyNexus }}
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: nexus
+  namespace: "{{ .Values.nsPrefix }}-policy"
+spec:
+  selector:
+    matchLabels:
+      app: nexus
+  template:
+    metadata:
+      labels:
+        app: nexus
+      name: nexus
+    spec:
+      containers:
+      - image: "{{ .Values.image.policyNexus }}:{{ .Values.image.policyNexusVersion }}"
+        imagePullPolicy: {{ .Values.pullPolicy }}
+        name: nexus
+        volumeMounts:
+        - name: localtime
+          mountPath: /etc/localtime
+          readOnly: true
+      volumes:
+      - name: localtime
+        hostPath:
+          path: /etc/localtime
+      imagePullSecrets:
+      - name: "{{ .Values.nsPrefix }}-docker-registry-key"
+#{{ end }}

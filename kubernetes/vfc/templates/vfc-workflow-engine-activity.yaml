@@ -1,0 +1,44 @@
+#{{ if not .Values.disableVfcVfcWorkflowEngineActiviti }}
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: vfc-workflowengineactiviti
+  namespace: "{{ .Values.nsPrefix }}-{{ .Chart.Name }}"
+spec:
+  replicas: {{ .Values.workflowengineactiviti.replicas }}
+  selector:
+    matchLabels:
+      app: vfc-workflowengineactiviti
+  template:
+    metadata:
+      labels:
+        app: vfc-workflowengineactiviti
+      name: vfc-workflowengineactiviti
+    spec:
+      hostname: vfc-workflowengineactiviti
+      containers:
+      - args:
+        image:  {{.Values.workflowengineactiviti.image}}
+        name: "vfc-workflowengineactiviti"
+        env:
+        - name: SERVICE_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: SERVICE_PORT
+          value: "{{ .Values.workflow.port }}"
+        - name: OPENPALETTE_MSB_IP
+          value: msb-iag.{{ .Values.nsPrefix }}-msb
+        - name: OPENPALETTE_MSB_PORT
+          value: "80"
+        ports:
+        - containerPort: {{ .Values.workflowengineactiviti.port }}
+        readinessProbe:
+          tcpSocket:
+            port: {{ .Values.workflowengineactiviti.port }}
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        imagePullPolicy: "{{ .Values.pullPolicy }}"
+      imagePullSecrets:
+      - name: "{{ .Values.nsPrefix }}-docker-registry-key"
+#{{ end }}

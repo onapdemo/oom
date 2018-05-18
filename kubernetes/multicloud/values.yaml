@@ -1,0 +1,12 @@
+nsPrefix: onap
+pullPolicy: Always
+nodePortPrefix: 302
+image:
+  readiness: oomk8s/readiness-check:1.0.0
+  framework: nexus3.onap.org:10001/onap/multicloud/framework:1.1.2-STAGING
+  vio: nexus3.onap.org:10001/onap/multicloud/vio:v1.0.0
+  ocata: nexus3.onap.org:10001/onap/multicloud/openstack-ocata:v1.0.0
+  windriver: nexus3.onap.org:10001/onap/multicloud/openstack-windriver:v1.0.0
+  aria: elhaydox/multicloud-azure:azure_1.0.0
+
+msbPort: 80

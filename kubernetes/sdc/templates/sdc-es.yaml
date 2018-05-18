@@ -1,0 +1,87 @@
+#{{ if not .Values.disableSdcSdcEs }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sdc-es-startup
+  namespace: "{{ .Values.nsPrefix }}-sdc"
+data:
+{{ (.Files.Glob "resources/sdc-es/startup.sh").AsConfig | indent 2 }}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: sdc-es
+  name: sdc-es
+  namespace: "{{ .Values.nsPrefix }}-sdc"
+spec:
+  selector:
+    matchLabels:
+      app: sdc-es
+  template:
+    metadata:
+      labels:
+        app: sdc-es
+      name: sdc-es
+    spec:
+      containers:
+      - image: {{ .Values.image.sdcElasticsearch }}
+        imagePullPolicy: {{ .Values.pullPolicy }}
+        name: sdc-es
+        env:
+        - name: ENVNAME
+          value: "AUTO"
+        - name: HOST_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: ES_HEAP_SIZE
+          value: "1024M"
+        volumeMounts:
+        - mountPath: /root/chef-solo/environments/
+          name: sdc-environments
+        - mountPath: /etc/localtime
+          name: sdc-localtime
+          readOnly: true
+        - mountPath: /var/lib/jetty/logs
+          name: sdc-logs
+        - mountPath: /root/startup.sh
+          name: sdc-es-startup
+          subPath: startup.sh
+        ports:
+        - containerPort: 9200
+        - containerPort: 9300
+        readinessProbe:
+          exec:
+            command:
+            - cat
+            - /tmp/ready
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          failureThreshold: 20
+        livenessProbe:
+          tcpSocket:
+            port: 9300
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          failureThreshold: 10
+      volumes:
+      - name: sdc-sdc-es-es
+        hostPath:
+          path: /dockerdata-nfs/{{ .Values.nsPrefix }}/sdc/sdc-es/ES
+      - name: sdc-environments
+        hostPath:
+          path: /dockerdata-nfs/{{ .Values.nsPrefix }}/sdc/environments
+      - name: sdc-localtime
+        hostPath:
+          path:  /etc/localtime
+      - name:  sdc-logs
+        hostPath:
+          path:  /dockerdata-nfs/{{ .Values.nsPrefix }}/sdc/logs
+      - name: sdc-es-startup
+        configMap:
+          name: sdc-es-startup
+          defaultMode: 0755
+      imagePullSecrets:
+      - name: "{{ .Values.nsPrefix }}-docker-registry-key"
+#{{ end }}

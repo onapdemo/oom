@@ -1,0 +1,163 @@
+#{{ if not .Values.disablePortalPortalapps }}
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: portalapps
+  namespace: "{{ .Values.nsPrefix }}-portal"
+spec:
+  selector:
+    matchLabels:
+      app: portalapps
+  template:
+    metadata:
+       labels:
+         app: portalapps
+       name: portalapps
+       annotations:
+         pod.beta.kubernetes.io/init-containers: '[
+           {
+               "args": [
+                   "--container-name",
+                   "portaldb"
+               ],
+               "command": [
+                   "/root/ready.py"
+               ],
+               "env": [
+                   {
+                       "name": "NAMESPACE",
+                       "valueFrom": {
+                           "fieldRef": {
+                               "apiVersion": "v1",
+                               "fieldPath": "metadata.namespace"
+                           }
+                       }
+                   }
+               ],
+               "image": "{{ .Values.image.readiness }}",
+               "imagePullPolicy": "{{ .Values.pullPolicy }}",
+               "name": "portalapps-readiness"
+           },
+           {
+               "command": ["/bin/bash", "-c", "if [ ! -e /portal_root/boot.txt ]; then mysql -u root -pAa123456 -h portaldb < /portal-mysql/oom_updates.sql; fi"],
+               "volumeMounts": [
+                 {
+                   "mountPath": "/portal-mysql/oom_updates.sql",
+                   "name": "portal-mariadb-onboarding-sql"
+                 },
+                 {
+                   "mountPath": "/portal_root/",
+                   "name": "portal-root"
+                 }
+               ],
+               "image": "{{ .Values.image.mariadbClient }}",
+               "imagePullPolicy": "{{ .Values.pullPolicy }}",
+               "name": "provision-portaldb-users"
+           }
+           ]'
+    spec:
+      containers:
+      - image: {{ .Values.image.portalapps }}
+        imagePullPolicy: {{ .Values.pullPolicy }}
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/sh", "-c", "echo yes > /portal_root/boot.txt"]
+        name: portalapps
+        volumeMounts:
+        - mountPath: /etc/localtime
+          name: localtime
+          readOnly: true
+        - mountPath: "{{ .Values.onapPortal.webappsDir }}/ONAPPORTAL/WEB-INF/fusion/conf/fusion.properties"
+          name: portal-fusion-properties
+        - mountPath: "{{ .Values.onapPortal.webappsDir }}/ONAPPORTAL/WEB-INF/classes/openid-connect.properties"
+          name: portal-openid-connect-properties
+        - mountPath: "{{ .Values.onapPortal.webappsDir }}/ONAPPORTAL/WEB-INF/conf/system.properties"
+          name: portal-system-properties
+        - mountPath: "{{ .Values.onapPortal.webappsDir }}/ONAPPORTAL/WEB-INF/classes/portal.properties"
+          name: portal-portal-properties
+        - mountPath: "{{ .Values.onapPortal.webappsDir }}/ONAPPORTAL/WEB-INF/classes/logback.xml"
+          name: portal-logback
+        - mountPath: "{{ .Values.onapPortal.webappsDir }}/ONAPPORTALSDK/WEB-INF/conf/system.properties"
+          name: sdkapp-system-properties
+        - mountPath: "{{ .Values.onapPortal.webappsDir }}/ONAPPORTALSDK/WEB-INF/classes/portal.properties"
+          name: sdkapp-portal-properties
+        - mountPath: "{{ .Values.onapPortal.webappsDir }}/ONAPPORTALSDK/WEB-INF/fusion/conf/fusion.properties"
+          name: sdkapp-fusion-properties
+        - mountPath: "{{ .Values.onapPortal.webappsDir }}/ONAPPORTALSDK/WEB-INF/classes/logback.xml"
+          name: sdkapp-logback
+        - mountPath: /portal_root/
+          name: portal-root
+        - mountPath: "{{ .Values.onapPortal.webappsDir }}/logs"
+          name: portal-logs
+        - mountPath: /var/log/onap
+          name: portal-logs2
+        ports:
+        - containerPort: 8005
+        - containerPort: 8009
+        - containerPort: 8080
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      - image: {{ .Values.image.filebeat }}
+        imagePullPolicy: {{ .Values.pullPolicy }}
+        name: filebeat-onap
+        volumeMounts:
+        - mountPath: /usr/share/filebeat/filebeat.yml
+          name: filebeat-conf
+        - mountPath: /var/log/onap
+          name: portal-logs2
+        - mountPath: /usr/share/filebeat/data
+          name: portal-data-filebeat
+      volumes:
+        - name: localtime
+          hostPath:
+            path: /etc/localtime
+        - name: filebeat-conf
+          hostPath:
+            path: /dockerdata-nfs/{{ .Values.nsPrefix }}/log/filebeat/logback/filebeat.yml
+        - name: portal-logs2
+          emptyDir: {}
+        - name: portal-data-filebeat
+          emptyDir: {}
+        - name: portal-fusion-properties
+          hostPath:
+            path:  /dockerdata-nfs/{{ .Values.nsPrefix }}/portal/portal-fe/webapps/etc/ONAPPORTAL/fusion.properties
+        - name: portal-openid-connect-properties
+          hostPath:
+            path: /dockerdata-nfs/{{ .Values.nsPrefix }}/portal/portal-fe/webapps/etc/ONAPPORTAL/openid-connect.properties
+        - name: portal-system-properties
+          hostPath:
+            path: /dockerdata-nfs/{{ .Values.nsPrefix }}/portal/portal-fe/webapps/etc/ONAPPORTAL/system.properties
+        - name: portal-portal-properties
+          hostPath:
+            path: /dockerdata-nfs/{{ .Values.nsPrefix }}/portal/portal-fe/webapps/etc/ONAPPORTAL/portal.properties
+        - name: portal-logback
+          hostPath:
+            path: /dockerdata-nfs/{{ .Values.nsPrefix }}/log/portal/onapportal/logback.xml
+        - name: sdkapp-system-properties
+          hostPath:
+            path: /dockerdata-nfs/{{ .Values.nsPrefix }}/portal/portal-fe/webapps/etc/ONAPPORTALSDK/system.properties
+        - name: sdkapp-portal-properties
+          hostPath:
+            path: /dockerdata-nfs/{{ .Values.nsPrefix }}/portal/portal-fe/webapps/etc/ONAPPORTALSDK/portal.properties
+        - name: sdkapp-fusion-properties
+          hostPath:
+            path: /dockerdata-nfs/{{ .Values.nsPrefix }}/portal/portal-fe/webapps/etc/ONAPPORTALSDK/fusion.properties
+        - name: sdkapp-logback
+          hostPath:
+            path: /dockerdata-nfs/{{ .Values.nsPrefix }}/log/portal/onapportalsdk/logback.xml
+        - name: portal-mariadb-onboarding-sql
+          hostPath:
+            path: /dockerdata-nfs/{{ .Values.nsPrefix }}/portal/mariadb/oom_updates.sql
+        - name: portal-root
+          hostPath:
+            path: /dockerdata-nfs/{{ .Values.nsPrefix }}/portal
+        - name: portal-logs
+          hostPath:
+            path: /dockerdata-nfs/{{ .Values.nsPrefix }}/portal/logs
+      imagePullSecrets:
+      - name: "{{ .Values.nsPrefix }}-docker-registry-key"
+#{{ end }}

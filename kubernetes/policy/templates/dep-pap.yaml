@@ -1,0 +1,133 @@
+#{{ if not .Values.disablePolicyPap }}
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: pap
+  namespace: "{{ .Values.nsPrefix }}-policy"
+spec:
+  selector:
+    matchLabels:
+      app: pap
+  template:
+    metadata:
+      labels:
+        app: pap
+      name: pap
+      annotations:
+        pod.beta.kubernetes.io/init-containers: '[
+          {
+              "args": [
+                  "--container-name",
+                  "mariadb"
+              ],
+              "command": [
+                  "/root/ready.py"
+              ],
+              "env": [
+                  {
+                      "name": "NAMESPACE",
+                      "valueFrom": {
+                          "fieldRef": {
+                              "apiVersion": "v1",
+                              "fieldPath": "metadata.namespace"
+                          }
+                      }
+                  }
+              ],
+              "image": "{{ .Values.image.readiness }}:{{ .Values.image.readinessVersion }}",
+              "imagePullPolicy": "{{ .Values.pullPolicy }}",
+              "name": "pap-readiness"
+          },
+          {
+              "env": [
+                  {
+                      "name": "POD_IP",
+                      "valueFrom": {
+                          "fieldRef": {
+                              "apiVersion": "v1",
+                              "fieldPath": "status.podIP"
+                          }
+                      }
+                  }
+              ],
+              "command": ["/bin/bash", "-c", "echo $POD_IP > /config/ip_addr.txt"],
+              "volumeMounts": [
+                {
+                  "mountPath": "/config/",
+                  "name": "pe"
+                }
+              ],
+              "image": "{{ .Values.image.ubuntu }}",
+              "imagePullPolicy": "{{ .Values.pullPolicy }}",
+              "name": "generate-ip-addr-txt"
+          }
+          ]'
+    spec:
+      containers:
+      - command:
+        - /bin/bash
+        - ./do-start.sh
+        - pap
+        image: "{{ .Values.image.policyPe }}:{{ .Values.image.policyPeVersion }}"
+        imagePullPolicy: {{ .Values.pullPolicy }}
+        name: pap
+        env:
+        - name: PRELOAD_POLICIES
+          value: "true"
+        ports:
+        - containerPort: 8443
+        - containerPort: 9091
+        readinessProbe:
+          tcpSocket:
+            port: 9091
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        volumeMounts:
+        - mountPath: /etc/localtime
+          name: localtime
+          readOnly: true
+        - mountPath: /tmp/policy-install/config/
+          name: pe
+        - mountPath: /var/log/onap
+          name: policy-logs
+        - mountPath: /tmp/policy-install/logback.xml
+          name: policy-sdk-logback
+        - mountPath: /tmp/logback.xml
+          name: policy-logback
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/sh", "-c", "export LOG=wait_logback.log; touch $LOG; export SRC=/tmp/logback.xml; export DST=/opt/app/policy/servers/pap/webapps/pap/WEB-INF/classes/; while [ ! -e $DST ]; do echo 'Waiting for $DST...' >> $LOG; sleep 5; done; sleep 2; /bin/cp -f $SRC $DST; export SRC=/tmp/policy-install/logback.xml; export DST=/opt/app/policy/servers/console/webapps/onap/WEB-INF/classes/; while [ ! -e $DST ]; do echo 'Waiting for $DST...' >> $LOG; sleep 5; done; sleep 2; /bin/cp -f $SRC $DST; echo 'Done' >> $LOG"]
+      - image: {{ .Values.image.filebeat }}
+        imagePullPolicy: {{ .Values.pullPolicy }}
+        name: filebeat-onap
+        volumeMounts:
+        - mountPath: /usr/share/filebeat/filebeat.yml
+          name: filebeat-conf
+        - mountPath: /var/log/onap
+          name: policy-logs
+        - mountPath: /usr/share/filebeat/data
+          name: policy-data-filebeat
+      volumes:
+        - name: localtime
+          hostPath:
+            path: /etc/localtime
+        - name: filebeat-conf
+          hostPath:
+            path: /dockerdata-nfs/{{ .Values.nsPrefix }}/log/filebeat/logback/filebeat.yml
+        - name: policy-logs
+          emptyDir: {}
+        - name: policy-data-filebeat
+          emptyDir: {}
+        - name: policy-logback
+          hostPath:
+            path: /dockerdata-nfs/{{ .Values.nsPrefix }}/log/policy/xacml-pap-rest/logback.xml
+        - name: policy-sdk-logback
+          hostPath:
+            path: /dockerdata-nfs/{{ .Values.nsPrefix }}/log/policy/ep_sdk_app/logback.xml
+        - name: pe
+          hostPath:
+            path: /dockerdata-nfs/{{ .Values.nsPrefix }}/policy/opt/policy/config/pe/
+      imagePullSecrets:
+      - name: "{{ .Values.nsPrefix }}-docker-registry-key"
+#{{ end }}

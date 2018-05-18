@@ -1,0 +1,69 @@
+#{{ if not .Values.disablePortalPortalwidgets }}
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: portalwidgets
+  namespace: "{{ .Values.nsPrefix }}-portal"
+spec:
+  selector:
+    matchLabels:
+      app: portalwidgets
+  template:
+    metadata:
+       labels:
+         app: portalwidgets
+       name: portalwidgets
+       annotations:
+         pod.beta.kubernetes.io/init-containers: '[
+           {
+               "args": [
+                   "--container-name",
+                   "portaldb"
+               ],
+               "command": [
+                   "/root/ready.py"
+               ],
+               "env": [
+                   {
+                       "name": "NAMESPACE",
+                       "valueFrom": {
+                           "fieldRef": {
+                               "apiVersion": "v1",
+                               "fieldPath": "metadata.namespace"
+                           }
+                       }
+                   }
+               ],
+               "image": "{{ .Values.image.readiness }}",
+               "imagePullPolicy": "{{ .Values.pullPolicy }}",
+               "name": "portalapps-readiness"
+           }
+           ]'
+    spec:
+      containers:
+      - image: {{ .Values.image.portalwms }}
+        imagePullPolicy: {{ .Values.pullPolicy }} 
+        name: portalwidgets
+        volumeMounts:
+        - mountPath: /etc/localtime
+          name: localtime
+          readOnly: true
+        - mountPath: /application.properties
+          name: portalwidgets-application-properties
+        ports:
+        - containerPort: 8082
+        readinessProbe:
+          tcpSocket:
+            port: 8082
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+        - name: localtime
+          hostPath:
+            path: /etc/localtime
+        - name: portalwidgets-application-properties
+          hostPath:
+            path: /dockerdata-nfs/{{ .Values.nsPrefix }}/portal/portal-fe/webapps/etc/ONAPWIDGETMS/application.properties
+      imagePullSecrets:
+      - name: "{{ .Values.nsPrefix }}-docker-registry-key"
+#{{ end }}

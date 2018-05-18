@@ -1,0 +1,14 @@
+nsPrefix: onap
+pullPolicy: Always
+nodePortPrefix: 302
+image:
+  readiness: oomk8s/readiness-check:1.0.0
+  portalapps: nexus3.onap.org:10001/onap/portal-apps:v1.3.0
+  portaldb: nexus3.onap.org:10001/onap/portal-db:v1.3.0
+  mariadbClient: oomk8s/mariadb-client-init:1.0.0
+  portalwms: nexus3.onap.org:10001/onap/portal-wms:v1.3.0
+  ubuntuInit: oomk8s/ubuntu-init:1.0.0
+  ubuntuDesktop: dorowu/ubuntu-desktop-lxde-vnc
+  filebeat: docker.elastic.co/beats/filebeat:5.5.0
+onapPortal:
+  webappsDir: "/opt/apache-tomcat-8.0.37/webapps"

@@ -1,0 +1,52 @@
+#{{ if not .Values.disableMulticloudMulticloudAzure }}
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: multicloud-azure
+  namespace: "{{ .Values.nsPrefix }}-multicloud"
+spec:
+  selector:
+    matchLabels:
+      app: multicloud-azure
+  template:
+    metadata:
+      labels:
+        app: multicloud-azure
+      name: multicloud-azure
+    spec:
+     hostname: multicloud-azure
+     containers:
+     - env:
+       - name: MSB_ADDR
+         value: msb-iag.{{ .Values.nsPrefix }}-msb
+       - name: MSB_PORT
+         value: "{{ .Values.msbPort }}"
+       - name: AAI_ADDR
+         value: aai-service.{{ .Values.nsPrefix }}-aai
+       - name: AAI_PORT
+         value: "8443"
+       - name: AAI_SCHEMA_VERSION
+         value: "v11"
+       - name: AAI_USERNAME
+         value: "AAI"
+       - name: AAI_PASSWORD
+         value: "AAI"
+       name: multicloud-azure
+       image: {{ .Values.image.aria }}
+       imagePullPolicy: {{ .Values.pullPolicy }}
+       ports:
+       - containerPort: 5000
+       livenessProbe:
+         httpGet:
+           path: /
+           port: 5000
+           scheme: HTTP
+         initialDelaySeconds: 30
+         periodSeconds: 100
+         timeoutSeconds: 10
+         successThreshold: 1
+         failureThreshold: 5
+     restartPolicy: Always
+     imagePullSecrets:
+     - name: "{{ .Values.nsPrefix }}-docker-registry-key"
+#{{ end }}

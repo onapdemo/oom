@@ -1,0 +1,41 @@
+#{{ if not .Values.disableMsbMsbIag }}
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: msb-iag
+  namespace: "{{ .Values.nsPrefix }}-msb"
+spec:
+  replicas: {{ .Values.iagReplicas }}
+  selector:
+    matchLabels:
+      app: msb-iag
+  template:
+    metadata:
+      labels:
+        app: msb-iag
+      name: msb-iag
+    spec:
+      hostname: msb-iag
+      containers:
+      - args:
+        image:  {{ .Values.image.apigateway }}
+        name: "msb-iag"
+        env:
+        - name: CONSUL_IP
+          value: msb-consul.{{ .Values.nsPrefix }}-msb
+        - name: SDCLIENT_IP
+          value: msb-discovery.{{ .Values.nsPrefix }}-msb
+        - name: ROUTE_LABELS
+          value: "visualRange:1"
+        ports:
+        - containerPort: {{ .Values.iagPort }}
+          name: msb-iag
+        readinessProbe:
+          tcpSocket:
+            port: {{ .Values.iagPort }}
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        imagePullPolicy: "{{ .Values.pullPolicy}}"
+      imagePullSecrets:
+      - name: "{{ .Values.nsPrefix }}-docker-registry-key"
+#{{ end }}

@@ -1,0 +1,146 @@
+#{{ if not .Values.disableMulticloudFramework }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: framework
+  namespace: "{{ .Values.nsPrefix }}-multicloud"
+  labels:
+    name: framework
+  annotations:
+    msb.onap.org/service-info: '[
+    {
+      "serviceName": "multicloud",
+      "version": "v0",
+      "url": "/api/multicloud/v0",
+      "protocol": "REST",
+      "port": "9001",
+      "visualRange": "1"
+    }
+    ]'
+spec:
+  ports:
+  - name: "framework-port"
+    port: 9001
+    nodePort: {{ .Values.nodePortPrefix }}91
+  selector:
+    app: framework
+  type: NodePort
+#{{ end }}
+#{{ if not .Values.disableMulticloudMulticloudVio }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: multicloud-vio
+  namespace: "{{ .Values.nsPrefix }}-multicloud"
+  labels:
+    name: multicloud-vio
+  annotations:
+    msb.onap.org/service-info: '[
+    {
+      "serviceName": "multicloud-vio",
+      "version": "v0",
+      "url": "/api/multicloud-vio/v0",
+      "protocol": "REST",
+      "port": "9004",
+      "visualRange": "1"
+    }
+    ]'
+
+spec:
+  ports:
+  - name: "multicloud-port"
+    port: 9004
+    nodePort: {{ .Values.nodePortPrefix }}92
+  selector:
+    app: multicloud-vio
+  type: NodePort
+#{{ end }}
+#{{ if not .Values.disableMulticloudMulticloudOcata }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: multicloud-ocata
+  namespace: "{{ .Values.nsPrefix }}-multicloud"
+  labels:
+    name: multicloud-ocata
+  annotations:
+    msb.onap.org/service-info: '[
+    {
+      "serviceName": "multicloud-ocata",
+      "version": "v0",
+      "url": "/api/multicloud-ocata/v0",
+      "protocol": "REST",
+      "port": "9006",
+      "visualRange": "1"
+    }
+    ]'
+
+spec:
+  ports:
+  - name: "multicloud-port"
+    port: 9006
+    nodePort: {{ .Values.nodePortPrefix }}93
+  selector:
+    app: multicloud-ocata
+  type: NodePort
+#{{ end }}
+#{{ if not .Values.disableMulticloudMulticloudWindriver }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: multicloud-windriver
+  namespace: "{{ .Values.nsPrefix }}-multicloud"
+  labels:
+    name: multicloud-windriver
+  annotations:
+    msb.onap.org/service-info: '[
+    {
+      "serviceName": "multicloud-titanium_cloud",
+      "version": "v0",
+      "url": "/api/multicloud-titanium_cloud/v0",
+      "protocol": "REST",
+      "port": "9005",
+      "visualRange": "1"
+    }
+    ]'
+
+spec:
+  ports:
+  - name: "multicloud-port"
+    port: 9005
+    nodePort: {{ .Values.nodePortPrefix }}94
+  selector:
+    app: multicloud-windriver
+  type: NodePort
+#{{ end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: multicloud-azure
+  namespace: "{{ .Values.nsPrefix }}-multicloud"
+  labels:
+    name: multicloud-azure
+  annotations:
+    msb.onap.org/service-info: '[
+    {
+      "serviceName": "multicloud-azure",
+      "version": "v0",
+      "url": "/api/multicloud-azure/v0",
+      "protocol": "REST",
+      "port": "5000",
+      "visualRange": "1"
+    }
+    ]'
+
+spec:
+  ports:
+  - name: "multicloud-port"
+    port: 5000
+    nodePort: {{ .Values.nodePortPrefix }}98
+  selector:
+    app: multicloud-azure
+  type: NodePort

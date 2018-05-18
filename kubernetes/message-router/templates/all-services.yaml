@@ -1,0 +1,66 @@
+#{{ if not .Values.disableMessageRouterZookeeper }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper
+  namespace: "{{ .Values.nsPrefix }}-message-router"
+  labels:
+    app: zookeeper
+spec:
+  ports:
+  - name: zookeeper1
+    port: 2181
+  selector:
+    app: zookeeper
+  clusterIP: None
+#{{ end }}
+#{{ if not .Values.disableMessageRouterGlobalKafka }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: global-kafka
+  namespace: "{{ .Values.nsPrefix }}-message-router"
+  labels:
+    app: global-kafka
+spec:
+  ports:
+  - name: kafka1
+    port: 9092
+  selector:
+    app: global-kafka
+  clusterIP: None
+#{{ end }}
+#{{ if not .Values.disableMessageRouterDmaap }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dmaap
+  namespace: "{{ .Values.nsPrefix }}-message-router"
+  labels:
+    app: dmaap
+    version: 1.0.0
+  annotations:
+    msb.onap.org/service-info: '[
+      {
+          "serviceName": "message-router",
+          "version": "v1",
+          "url": "/",
+          "protocol": "REST",
+          "port": "3904",
+          "visualRange":"1"
+      }
+      ]'
+spec:
+  ports:
+  - name: mr1
+    port: 3904
+    nodePort: {{ .Values.nodePortPrefix }}27
+  - name: mr2
+    port: 3905
+    nodePort: {{ .Values.nodePortPrefix }}26
+  selector:
+    app: dmaap
+  type: NodePort
+#{{ end }}

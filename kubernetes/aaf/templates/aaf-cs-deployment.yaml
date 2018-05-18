@@ -1,0 +1,38 @@
+#{{ if not .Values.disableAafAafCs }}
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: aaf-cs
+  namespace: "{{ .Values.nsPrefix }}-aaf"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aaf-cs
+  template:
+    metadata:
+      labels:
+        app: aaf-cs
+      name: aaf-cs
+    spec:
+      hostname: aaf-cs
+      containers:
+      - args:
+        image: {{ .Values.image.csImage }}:{{ .Values.image.csVersion }}
+        imagePullPolicy: {{ .Values.pullPolicy }}
+        name: "aaf-cs"
+        volumeMounts:
+        - mountPath: /data
+          name: aaf-cs-data
+        readinessProbe:
+          tcpSocket:
+            port: 7000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+        - name: aaf-cs-data
+          hostPath:
+            path: /dockerdata-nfs/{{ .Values.nsPrefix }}/aaf/data
+      imagePullSecrets:
+      - name: {{ .Values.nsPrefix }}-docker-registry-key
+#{{ end }}

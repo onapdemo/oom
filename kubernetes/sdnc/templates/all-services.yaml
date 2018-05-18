@@ -1,0 +1,125 @@
+#{{ if not .Values.disableSdncSdncDbhost }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: dbhost
+  namespace: "{{ .Values.nsPrefix }}-sdnc"
+  labels:
+    app: sdnc-dbhost
+spec:
+  ports:
+    - port: 3306
+  selector:
+    app: sdnc-dbhost
+  clusterIP: None
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sdnctldb01
+  namespace: "{{ .Values.nsPrefix }}-sdnc"
+  labels:
+    app: sdnc-dbhost
+spec:
+  ports:
+    - port: 3306
+  selector:
+    app: sdnc-dbhost
+  clusterIP: None
+#{{ end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sdnctldb02
+  namespace: "{{ .Values.nsPrefix }}-sdnc"
+  labels:
+    app: sdnc-dbhost
+spec:
+  ports:
+    - port: 3306
+  selector:
+    app: sdnc-dbhost
+  clusterIP: None
+#{{ if not .Values.disableSdncSdncDgbuilder }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sdnc-dgbuilder
+  namespace: "{{ .Values.nsPrefix }}-sdnc"
+  labels:
+    app: sdnc-dgbuilder
+spec:
+  ports:
+  - name: "sdnc-dgbuilder-port"
+    port: 3000
+    targetPort: 3100
+    nodePort: {{ .Values.nodePortPrefix }}03
+  type: NodePort
+  selector:
+    app: sdnc-dgbuilder
+#{{ end }}
+#{{ if not .Values.disableSdncSdnc }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sdnhost
+  namespace: "{{ .Values.nsPrefix }}-sdnc"
+  labels:
+    app: sdnc
+  annotations:
+    msb.onap.org/service-info: '[
+      {
+          "serviceName": "sdnc",
+          "version": "v1",
+          "url": "/",
+          "protocol": "REST",
+          "port": "8282",
+          "visualRange":"1",
+          "path": "/"
+      }
+      ]'
+spec:
+  ports:
+  - name: "sdnc-port-8181"
+    port: 8282
+    targetPort: 8181
+    nodePort: {{ .Values.nodePortPrefix }}02
+  - name: "sdnc-port-8101"
+    port: 8201
+    targetPort: 8101
+  type: NodePort
+  selector:
+    app: sdnc
+#{{ end }}
+#{{ if not .Values.disableSdncSdncPortal }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sdnc-portal
+  namespace: "{{ .Values.nsPrefix }}-sdnc"
+  labels:
+    app: sdnc-portal
+  annotations:
+    msb.onap.org/service-info: '[
+      {
+          "serviceName": "sdnc-portal",
+          "version": "v1",
+          "url": "/",
+          "protocol": "UI",
+          "port": "8843",
+          "visualRange":"0|1"
+      }
+      ]'
+spec:
+  ports:
+  - name: "sdnc-portal-port"
+    port: 8843
+    nodePort: {{ .Values.nodePortPrefix }}01
+  type: NodePort
+  selector:
+    app: sdnc-portal
+#{{ end }}

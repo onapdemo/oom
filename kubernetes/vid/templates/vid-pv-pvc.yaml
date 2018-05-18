@@ -1,0 +1,32 @@
+#{{ if not .Values.disableVidVidMariadb }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: "{{ .Values.nsPrefix }}-vid-db"
+  namespace: "{{ .Values.nsPrefix }}-vid"
+  labels:
+    name: "{{ .Values.nsPrefix }}-vid-db"
+spec:
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /dockerdata-nfs/{{ .Values.nsPrefix }}/vid/mariadb/data
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: vid-db
+  namespace: "{{ .Values.nsPrefix }}-vid"
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 2Gi
+  selector:
+    matchLabels:
+      name: "{{ .Values.nsPrefix }}-vid-db"
+#{{ end }}
