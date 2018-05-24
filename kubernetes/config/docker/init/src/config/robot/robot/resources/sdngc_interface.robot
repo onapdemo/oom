@@ -88,8 +88,9 @@ Preload Vnf
     [Arguments]    ${service_type_uuid}    ${generic_vnf_name}    ${generic_vnf_type}     ${vf_module_name}    ${vf_modules}    ${service}   ${uuid}
     ${base_vf_module_type}=    Catenate
     ${closedloop_vf_module}=    Create Dictionary
-    Run Openstack Auth Request    auth
-    ${servers}=    Get Openstack Servers    auth
+    #Run Openstack Auth Request    auth
+    #${servers}=    Get Openstack Servers    auth
+    ${servers}    Set Variable    ${uuid}
     ${templates}=    Get From Dictionary    ${GLOBAL_SERVICE_TEMPLATE_MAPPING}    ${service}
     :for    ${vf_module}    in      @{vf_modules}
     \       ${vf_module_type}=    Get From Dictionary    ${vf_module}    name
@@ -115,7 +116,9 @@ Get From Mapping
     [Arguments]    ${templates}    ${vf_module}
     ${vf_module_name}=    Get From DIctionary    ${vf_module}    name
     :for    ${template}   in   @{templates}
-    \    Return From Keyword If    '${template['name_pattern']}' in '${vf_module_name}'     ${template}
+    \    Run Keyword If    "${template['name_pattern']}"=="azurevsnk" or "${template['name_pattern']}"=="azurevpkg"    Return From Keyword    ${template}
+    \    ...    ELSE IF    "${template['name_pattern']}"=="azurevdns"    Return From Keyword    ${template}
+    \    ...    ELSE    Return From Keyword If    '${template['name_pattern']}' in '${vf_module_name}'     ${template}
     [Return]    None
 
 Preload One Vnf Topology
@@ -123,7 +126,10 @@ Preload One Vnf Topology
     Return From Keyword If    '${filename}' == ''
     ${data_template}=    OperatingSystem.Get File    ${PRELOAD_VNF_TOPOLOGY_OPERATION_BODY}/preload.template
     ${pub_key}=   OperatingSystem.Get File    ${GLOBAL_VM_PUBLIC_KEY}
-    ${robot_values}=   Create Dictionary   pub_key=${pub_key}   generic_vnf_name=${generic_vnf_name}     generic_vnf_type=${generic_vnf_type}  service_type=${service_type_uuid}    vf_module_name=${vf_module_name}    vf_module_type=${vf_module_type}
+    ${snk}    Get Substring    ${generic_vnf_name}    0    11
+    ${pkg}    Get Substring    ${generic_vnf_name}    0    9
+    ${robot_values}=    Run Keyword If    "azurevfwsnk"=="${snk}" or "azurevpkg"=="${pkg}" or "azurevdns"=="${pkg}"    Create Dictionary   generic_vnf_name=${generic_vnf_name}     generic_vnf_type=${generic_vnf_type}  service_type=${service_type_uuid}    vf_module_name=${vf_module_name}    vf_module_type=${vf_module_type}
+    ...    ELSE    Create Dictionary   pub_key=${pub_key}   generic_vnf_name=${generic_vnf_name}     generic_vnf_type=${generic_vnf_type}  service_type=${service_type_uuid}    vf_module_name=${vf_module_name}    vf_module_type=${vf_module_type}
     ${parameters}=    Get Template Parameters    ${filename}   ${uuid}   ${servers}   ${robot_values}
     ${data}=	Fill JSON Template    ${data_template}    ${parameters}
 	${put_resp}=    Run SDNGC Post Request     ${SDNGC_INDEX_PATH}${PRELOAD_VNF_TOPOLOGY_OPERATION_PATH}     ${data}
@@ -132,23 +138,46 @@ Preload One Vnf Topology
     Should Be Equal As Strings 	${get_resp.status_code} 	200
 
 Get Template Parameters
+    [Documentation]    Gets the SDNC preload parameters from template
     [Arguments]    ${template}    ${uuid}   ${servers}   ${robot_values}
     ${rest}   ${suite}=    Split String From Right    ${SUITE NAME}   .   1
     ${uuid}=    Catenate    ${uuid}
     ${hostid}=    Get Substring    ${uuid}    -4
     ${ecompnet}=    Evaluate    (${GLOBAL_BUILD_NUMBER}%128)+128
-    ${dcae_server}=   Get From Dictionary    ${servers}    ${GLOBAL_DCAE_COLLECTOR_HOST_NAME}
-    ${dcae_collector_ip}=   Search Addresses    ${dcae_server}    public
-
+    ${dcae_server}=   Run Keyword If    "${template}"!="azurevfwsnk_preload.template" and "${template}"!="azurevpkg_preload.template" and "${template}"!="azurevdns_preload.template"    Get From Dictionary    ${servers}    ${GLOBAL_DCAE_COLLECTOR_HOST_NAME}
+    ${dcae_collector_ip}=   Run Keyword If    "${template}"!="azurevfwsnk_preload.template" and "${template}"!="azurevpkg_preload.template" and "${template}"!="azurevdns_preload.template"    Search Addresses    ${dcae_server}    public
 
     # Initialize the value map with the properties generated from the Robot VM /opt/config folder
-    ${valuemap}=   Copy Dictionary    ${GLOBAL_INJECTED_PROPERTIES}
+    ${valuemap}=    Run Keyword If    "${template}"=="azurevfwsnk_preload.template" or "${template}"=="azurevpkg_preload.template" or "${template}"=="azurevdns_preload.template"    Create Dictionary
+	...    ELSE    Copy Dictionary    ${GLOBAL_INJECTED_PROPERTIES}
     ${robot_keys}=   Get Dictionary Keys    ${robot_values}
     :for   ${key}   in   @{robot_keys}
     \    ${value}=   Get From Dictionary    ${robot_values}    ${key}
     \    Set To Dictionary    ${valuemap}  ${key}    ${value}
+    # Mash together the defaults dict with the test case dict to create the set of
+    # preload parameters
+    Run Keyword If    "${template}"!="azurevfwsnk_preload.template" and "${template}"!="azurevpkg_preload.template" and "${template}"!="azurevdns_preload.template"    Set Parameters    ${valuemap}    ${dcae_collector_ip}
 
-    # These should be deprecated by the above....
+    # update the value map with unique values.
+    Set To Dictionary   ${valuemap}      hostid=${hostid}    ecompnet=${ecompnet}
+
+    ${suite_templates}=    Get From Dictionary    ${GLOBAL_PRELOAD_PARAMETERS}    ${suite}
+    # add all of the defaults to template if template being used is not for Azure Specific service
+    ${defaults}=    Run Keyword If    "${template}"!="azurevfwsnk_preload.template" and "${template}"!="azurevpkg_preload.template" and "${template}"!="azurevdns_preload.template"    Get From Dictionary    ${GLOBAL_PRELOAD_PARAMETERS}    defaults
+    ${template}=    Run Keyword If    "${template}"=="azurevfwsnk_preload.template" or "${template}"=="azurevpkg_preload.template" or "${template}"=="azurevdns_preload.template"    Get From Dictionary    ${suite_templates}    ${template}
+    ...    ELSE    Get Defaults From Template    ${defaults}    ${template}    ${suite_templates}
+
+    # Get the vnf_parameters to preload
+    #
+    ${vnf_parameters}=   Resolve VNF Parameters Into Array   ${valuemap}   ${template}
+    ${vnf_parameters_json}=   Evaluate    json.dumps(${vnf_parameters})    json
+    ${parameters}=   Copy Dictionary    ${robot_values}
+    Set TO Dictionary   ${parameters}   vnf_parameters=${vnf_parameters_json}
+    [Return]    ${parameters}
+
+Set Parameters
+    [Documentation]   Set Parameters  for preload in valuemap
+    [Arguments]   ${valuemap}    ${dcae_collector_ip}
     Set To Dictionary   ${valuemap}   artifacts_version=${GLOBAL_INJECTED_ARTIFACTS_VERSION}
     Set To Dictionary   ${valuemap}   network=${GLOBAL_INJECTED_NETWORK}
     Set To Dictionary   ${valuemap}   public_net_id=${GLOBAL_INJECTED_PUBLIC_NET_ID}
@@ -157,32 +186,17 @@ Get Template Parameters
     Set To Dictionary   ${valuemap}   vm_image_name=${GLOBAL_INJECTED_VM_IMAGE_NAME}
     Set To Dictionary   ${valuemap}   vm_flavor_name=${GLOBAL_INJECTED_VM_FLAVOR}
     Set To Dictionary   ${valuemap}   dcae_collector_ip=${dcae_collector_ip}
+    [Return]    ${valuemap}
 
-
-    # update the value map with unique values.
-    Set To Dictionary   ${valuemap}   uuid=${uuid}   hostid=${hostid}    ecompnet=${ecompnet}
-
-    #
-    # Mash together the defaults dict with the test case dict to create the set of
-    # preload parameters
-    #
-    ${suite_templates}=    Get From Dictionary    ${GLOBAL_PRELOAD_PARAMETERS}    ${suite}
+Get Defaults From Template
+    [Documentation]   Get "Default" values From Template
+    [Arguments]   ${defaults}    ${template}    ${suite_templates}
     ${template}=    Get From Dictionary    ${suite_templates}    ${template}
-    ${defaults}=    Get From Dictionary    ${GLOBAL_PRELOAD_PARAMETERS}    defaults
-    # add all of the defaults to template...
     @{keys}=    Get Dictionary Keys    ${defaults}
     :for   ${key}   in   @{keys}
     \    ${value}=   Get From Dictionary    ${defaults}    ${key}
     \    Set To Dictionary    ${template}  ${key}    ${value}
-
-    #
-    # Get the vnf_parameters to preload
-    #
-    ${vnf_parameters}=   Resolve VNF Parameters Into Array   ${valuemap}   ${template}
-    ${vnf_parameters_json}=   Evaluate    json.dumps(${vnf_parameters})    json
-    ${parameters}=   Copy Dictionary    ${robot_values}
-    Set TO Dictionary   ${parameters}   vnf_parameters=${vnf_parameters_json}
-    [Return]    ${parameters}
+    [Return]    ${template}
 
 Resolve Values Into Dictionary
     [Arguments]   ${valuemap}    ${from}    ${to}

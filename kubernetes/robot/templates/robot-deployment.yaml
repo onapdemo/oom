@@ -19,6 +19,9 @@ spec:
         - bash
         - "-c"
         - |
+          mkdir -p /share/heat && cp -rf /tmp/demo/heat /share
+          mkdir -p /share/tosca && cp -rf /tmp/demo/tosca /share
+          mkdir -p /share/config && cp /tmp/testsuite/properties/integration_* /share/config
           lighttpd -D -f /etc/lighttpd/lighttpd.conf
         image: {{ .Values.image.testsuite }}
         imagePullPolicy: {{ .Values.pullPolicy }}

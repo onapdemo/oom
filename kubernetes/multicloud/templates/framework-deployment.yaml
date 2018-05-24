@@ -37,8 +37,8 @@ spec:
          name: framework-log
        - mountPath: /opt/multivimbroker/multivimbroker/pub/config/provider-plugin.json
          name: provider-plugin
-#       - mountPath: /opt/multivimbroker/run.sh
-#         name: framework-startup
+       - mountPath: /opt/multivimbroker/run.sh
+         name: framework-startup
        image: {{ .Values.image.framework }}
        imagePullPolicy: {{ .Values.pullPolicy }}
        ports:
@@ -61,9 +61,9 @@ spec:
      - name: provider-plugin
        hostPath:
          path: /dockerdata-nfs/{{ .Values.nsPrefix }}/multicloud/framework/provider-plugin.json
-#     - name: framework-startup
-#       hostPath:
-#         path: /dockerdata-nfs/{{ .Values.nsPrefix }}/multicloud/framework/run.sh
+     - name: framework-startup
+       hostPath:
+         path: /dockerdata-nfs/{{ .Values.nsPrefix }}/multicloud/framework/run.sh
      imagePullSecrets:
      - name: "{{ .Values.nsPrefix }}-docker-registry-key"
 #{{ end }}

@@ -9,6 +9,8 @@ Library 	      ExtendedSelenium2Library
 Resource          global_properties.robot
 Resource          browser_setup.robot
 Resource          json_templater.robot
+Library      base64_encrypt.py
+
 *** Variables ***
 ${ASDC_DESIGNER_USER_ID}    cs0008
 ${ASDC_TESTER_USER_ID}    jm0007
@@ -34,6 +36,7 @@ ${ASDC_CATALOG_SERVICE_DISTRIBUTION_PATH}    /distribution
 ${ASDC_DISTRIBUTION_STATE_APPROVE_PATH}    /approve
 ${ASDC_CATALOG_SERVICE_DISTRIBUTION_ACTIVATE_PATH}    /distribution/PROD/activate
 ${ASDC_LICENSE_MODEL_TEMPLATE}    robot/assets/templates/asdc/license_model.template
+${ASDC_SOFTWARE_DEPLOYMENT_TEMPLATE}    robot/assets/templates/asdc/software_deployment.template
 ${ASDC_KEY_GROUP_TEMPLATE}    robot/assets/templates/asdc/key_group.template
 ${ASDC_ENTITLEMENT_POOL_TEMPLATE}    robot/assets/templates/asdc/entitlement_pool.template
 ${ASDC_FEATURE_GROUP_TEMPLATE}    robot/assets/templates/asdc/feature_group.template
@@ -49,7 +52,7 @@ ${ASDC_BE_ENDPOINT}     ${GLOBAL_ASDC_SERVER_PROTOCOL}://${GLOBAL_INJECTED_SDC_B
 
 *** Keywords ***
 Distribute Model From ASDC
-    [Documentation]    goes end to end creating all the asdc objects based ona  model and distributing it to the systems. it then returns the service name, vf name and vf module name
+    [Documentation]    goes end to end creating all the asdc objects based on a  model and distributing it to the systems. it then returns the service name, vf name and vf module name
     [Arguments]    ${model_zip_path}   ${catalog_service_name}=
     ${catalog_service_id}=    Add ASDC Catalog Service    ${catalog_service_name}
     ${catalog_resource_ids}=    Create List
@@ -74,7 +77,7 @@ Distribute Model From ASDC
     [Return]    ${catalog_service_resp['name']}    ${loop_catalog_resource_resp['name']}    ${vf_module}   ${catalog_resource_ids}    ${catalog_service_id}   ${catalog_resources}
     
 Setup ASDC Catalog Resource
-    [Documentation]    Creates all the steps a vf needs for an asdc catalog resource and returns the id
+    [Documentation]    Handles all the steps a vf needs for an asdc catalog resource and returns the id
     [Arguments]    ${model_zip_path}
     ${license_model_id}=    Add ASDC License Model
     ${key_group_id}=    Add ASDC License Group    ${license_model_id}
@@ -92,12 +95,40 @@ Setup ASDC Catalog Resource
     Package ASDC Software Product    ${software_product_id}
     ${software_product_resp}=    Get ASDC Software Product    ${software_product_id}   1.0
     ${catalog_resource_id}=    Add ASDC Catalog Resource     ${license_agreement_id}    ${software_product_resp['name']}    ${license_model_resp['vendorName']}    ${software_product_id}
+
+    # For vFW and vDNS deployment on Azure, csar file needs to be uploaded in VSP. Following lines of code handle that.
+    Run Keyword If    "${model_zip_path}"=="/share/tosca/temp/AzurevFW_vSNK.csar"    Add Deployment Artifact    ${catalog_resource_id}    ${GLOBAL_DEPLOYMENTS_FOLDER}/${AZURE_VSINC_CSAR_FILE}    ${AZURE_VSINC_CSAR_FILE}    azurevsnk
+    Run Keyword If    "${model_zip_path}"=="/share/tosca/temp/AzurevFW_vPKG.csar"    Add Deployment Artifact    ${catalog_resource_id}    ${GLOBAL_DEPLOYMENTS_FOLDER}/${AZURE_VPKG_CSAR_FILE}    ${AZURE_VPKG_CSAR_FILE}    azurevpkg
+    Run Keyword If    "${model_zip_path}"=="/share/tosca/temp/AzurevDNS.csar"    Add Deployment Artifact    ${catalog_resource_id}    ${GLOBAL_DEPLOYMENTS_FOLDER}/${AZURE_VDNS_CSAR_FILE}    ${AZURE_VDNS_CSAR_FILE}    azurevdns
+
     Checkin ASDC Catalog Resource    ${catalog_resource_id}
     Request Certify ASDC Catalog Resource    ${catalog_resource_id}
     Start Certify ASDC Catalog Resource    ${catalog_resource_id}
     # on certify it gets a new id
-    [Return]    ${catalog_resource_id}
     ${catalog_resource_id}=    Certify ASDC Catalog Resource    ${catalog_resource_id}
+    [Return]    ${catalog_resource_id}
+
+Add Deployment Artifact
+    [Documentation]    Adds deployment artifact in onboarded VSP
+    [Arguments]    ${catalog_resource_id}    ${model_zip_path}    ${csar}    ${artifact_lable}
+    ${uuid}=    Generate UUID
+    ${shortened_uuid}=     Evaluate    str("${uuid}")[:23]
+    ${csar_file}=    Catenate    /share/tosca/aria_csars/${csar}
+    ${payload_data}=    Data Encoder    ${model_zip_path}
+    ${map}    Run Keyword If    "${model_zip_path}"=="${csar_file}"    Create Dictionary    artifact_name=Azure_${shortened_uuid}.csar    payload_data=${payload_data}    artifact_label=${artifact_lable}
+    ${data}=   Fill JSON Template File    ${ASDC_SOFTWARE_DEPLOYMENT_TEMPLATE}    ${map}
+    ${md5_value}=    md5 encoder    ${data}
+    ${md5_header}=    base64 encoder    ${md5_value}
+    ${resp}=    Run ASDC Upload Artifact Request    ${md5_header}    ${ASDC_CATALOG_RESOURCES_PATH}/${catalog_resource_id}/artifacts/    ${data}
+    Should Be Equal As Strings 	${resp.status_code} 	200
+
+Data Encoder
+    [Documentation]    Used specifically for adding Deployment artifact in VSP - Encodes the file in base64
+    [Arguments]    ${model_zip_path}
+    ${data}    get binary file    ${model_zip_path}
+    ${encodedData}    base64 encoder    ${data}
+    [Return]  ${encodedData}
+
 Add ASDC License Model
     [Documentation]    Creates an asdc license model and returns its id
     ${uuid}=    Generate UUID
@@ -449,6 +480,18 @@ Run ASDC Post Files Request
     Log    Received response from asdc ${resp.text}
     [Return]    ${resp}
 
+Run ASDC Upload Artifact Request
+    [Documentation]    Runs an ASDC post request to upload artifact in VSP
+    [Arguments]    ${Content-MD5}    ${data_path}    ${data}    ${user}=${ASDC_DESIGNER_USER_ID}    
+    ${auth}=  Create List  ${GLOBAL_ASDC_BE_USERNAME}    ${GLOBAL_ASDC_BE_PASSWORD}
+    Log    Creating session ${ASDC_BE_ENDPOINT}
+    ${session}=    Create Session 	asdc 	${ASDC_BE_ENDPOINT}    auth=${auth}
+    ${uuid}=    Generate UUID
+    ${headers}=  Create Dictionary     Accept=application/json    Content-Type=application/json    Content-MD5=${Content-MD5}    USER_ID=${user}    X-TransactionId=${GLOBAL_APPLICATION_ID}-${uuid}    X-FromAppId=${GLOBAL_APPLICATION_ID}    
+    ${resp}= 	Post Request 	asdc 	${data_path}     data=${data}    headers=${headers}
+    Log    Received response from asdc ${resp.text}
+    [Return]    ${resp}	
+	
 Run ASDC Post Request
     [Documentation]    Runs an ASDC post request
     [Arguments]    ${data_path}    ${data}    ${user}=${ASDC_DESIGNER_USER_ID}
@@ -492,3 +535,6 @@ Create Multi Part
    ${fileDir}  ${fileName}=  Split Path  ${filePath}
    ${partData}=  Create List  ${fileName}  ${fileData}  ${contentType}
    Set To Dictionary  ${addTo}  ${partName}=${partData}
+
+
+
