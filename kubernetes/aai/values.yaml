@@ -1,30 +1,123 @@
-nsPrefix: onap
+# Copyright © 2017 Amdocs, Bell Canada
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Default values for aai.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+global: # global defaults
+  nodePortPrefix: 302
+  repository: nexus3.onap.org:10001
+  dockerhubRepository: docker.io
+  busyboxImage: busybox
+  readinessRepository: oomk8s
+  readinessImage: readiness-check:2.0.0
+  loggingRepository: docker.elastic.co
+  loggingImage: beats/filebeat:5.5.0
+  restartPolicy: Always
+  cassandra:
+    serviceName: aai-cassandra
+    replicas: 3
+  aai:
+    serviceName: aai
+  babel:
+    serviceName: aai-babel
+  champ:
+    serviceName: aai-champ
+  aaiElasticsearch:
+    serviceName: aai-elasticsearch
+  hbase:
+    serviceName: aai-hbase
+  resources:
+    serviceName: aai-resources
+  sparkyBe:
+    serviceName: aai-sparky-be
+  dataRouter:
+    serviceName: aai-data-router
+  gizmo:
+    serviceName: aai-gizmo
+  modelloader:
+    serviceName: aai-modelloader
+  searchData:
+    serviceName: aai-search-data
+  traversal:
+    serviceName: aai-traversal
+
+
+# application image
+dockerhubRepository: registry.hub.docker.com
+image: aaionap/haproxy:1.2.4
 pullPolicy: Always
-nodePortPrefix: 302
 
-# POLICY hotfix - Note this must be temporary
-# See https://jira.onap.org/browse/POLICY-510
-aaiServiceClusterIp: 10.43.255.254
+# flag to enable debugging - application support required
+debugEnabled: false
 
-image:
-  readiness: oomk8s/readiness-check:1.0.0
-  aaiProxy: aaionap/haproxy
-  aaiProxyVersion: 1.1.0
-  aaiHbaseImage: aaionap/hbase
-  aaiHbaseVersion: 1.2.0
-  modelLoaderImage: nexus3.onap.org:10001/onap/model-loader
-  modelLoaderVersion: v1.1.1
-  aaiResourcesImage: nexus3.onap.org:10001/openecomp/aai-resources
-  aaiResourcesVersion: v1.1.1
-  aaiTraversalImage: nexus3.onap.org:10001/openecomp/aai-traversal
-  aaiTraversalVersion: v1.1.1
-  dataRouterImage: nexus3.onap.org:10001/onap/data-router
-  dataRouterVersion: v1.1.1
-  elasticsearchImage: elasticsearch
-  elasticsearchVersion: 2.4.1
-  searchDataImage: nexus3.onap.org:10001/onap/search-data-service
-  searchDataVersion: v1.1.1
-  sparkyBeImage: nexus3.onap.org:10001/onap/sparky-be
-  sparkyBeVersion: v1.1.1
-  gremlinServerImage: aaionap/gremlin-server
-  filebeat: docker.elastic.co/beats/filebeat:5.5.0
+# application configuration
+config:
+  logstashServiceName: log-ls
+  logstashPort: 5044
+
+# default number of instances
+replicaCount: 1
+
+nodeSelector: {}
+
+affinity: {}
+
+# probe configuration parameters
+liveness:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  # necessary to disable liveness probe when setting breakpoints
+  # in debugger so K8s doesn't restart unresponsive container
+  enabled: true
+
+readiness:
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+service:
+  type: NodePort
+  portName: aai
+  externalPort: 8080
+  internalPort: 8080
+  nodePort: 32
+  portName2: aai-ssl
+  externalPort2: 8443
+  internalPort2: 8443
+  nodePort2: 33
+  # POLICY hotfix - Note this must be temporary
+  # See https://jira.onap.org/browse/POLICY-510
+  aaiServiceClusterIp:
+
+ingress:
+  enabled: false
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  #
+  # Example:
+  # Configure resource requests and limits
+  # ref: http://kubernetes.io/docs/user-guide/compute-resources/
+  # Minimum memory for development is 2 CPU cores and 4GB memory
+  # Minimum memory for production is 4 CPU cores and 8GB memory
+#resources:
+#  limits:
+#    cpu: 2
+#    memory: 4Gi
+#  requests:
+#    cpu: 2
+#    memory: 4Gi

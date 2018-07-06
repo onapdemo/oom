@@ -1,0 +1,69 @@
+# Default values for resources.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+global: # global defaults
+  nodePortPrefix: 302
+  readinessRepository: oomk8s
+  readinessImage: readiness-check:2.0.0
+
+
+# application image
+repository: nexus3.onap.org:10001
+image: onap/aai-resources:1.2.2
+pullPolicy: Always
+restartPolicy: Always
+
+# default number of instances
+replicaCount: 1
+
+# Configuration for the resources deployment
+config:
+  userId: 1000
+  groupId: 1000
+
+nodeSelector: {}
+
+affinity: {}
+
+# probe configuration parameters
+liveness:
+  initialDelaySeconds: 60
+  periodSeconds: 60
+  # necessary to disable liveness probe when setting breakpoints
+  # in debugger so K8s doesn't restart unresponsive container
+  enabled: false
+
+readiness:
+  initialDelaySeconds: 60
+  periodSeconds: 10
+
+
+service:
+  type: ClusterIP
+  portName: aai-resources-8447
+  internalPort: 8447
+  portName2: aai-resources-5005
+  internalPort2: 5005
+
+
+ingress:
+  enabled: false
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  #
+  # Example:
+  # Configure resource requests and limits
+  # ref: http://kubernetes.io/docs/user-guide/compute-resources/
+  # Minimum memory for development is 2 CPU cores and 4GB memory
+  # Minimum memory for production is 4 CPU cores and 8GB memory
+#resources:
+#  limits:
+#    cpu: 2
+#    memory: 4Gi
+#  requests:
+#    cpu: 2
+#    memory: 4Gi

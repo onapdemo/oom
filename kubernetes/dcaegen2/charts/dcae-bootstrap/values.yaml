@@ -1,0 +1,84 @@
+#============LICENSE_START========================================================
+#=================================================================================
+# Copyright (c) 2018 AT&T Intellectual Property. All rights reserved.
+# Copyright © 2018 Amdocs, Bell Canada
+# ================================================================================
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ============LICENSE_END=========================================================
+
+#################################################################
+# Global configuration defaults.
+#################################################################
+global:
+  nodePortPrefix: 302
+  readinessRepository: oomk8s
+  readinessImage: readiness-check:2.0.0
+  loggingRepository: docker.elastic.co
+  loggingImage: beats/filebeat:5.5.0
+
+config:
+  logstashServiceName: log-ls
+  logstashPort: 5044
+  # Addresses of ONAP components
+  address:
+    consul:
+      host: consul-server
+      port: 8500
+    cm: dcae-cloudify-manager
+    message_router: message-router
+    msb_discovery: msb-discovery
+    policy_pdp: pdp
+    sdc: sdc-be
+  # redisCaching is a string not a boolean!
+  redisCaching: "false"
+
+# postgres values--overriding defaults in the postgres subchart
+postgres:
+  nameOverride: dcae-db
+  service:
+    name: dcae-postgres
+    name2: dcae-pg-primary
+    name3: dcae-pg-replica
+  container:
+    name:
+      primary: dcae-pg-primary
+      replica: dcae-pg-replica
+  config:
+    pgPrimaryPassword: onapdemodb
+    pgRootPassword: onapdemodb
+  persistence:
+    mountSubPath: dcae/data
+    mountInitPath: dcae
+
+# application image
+repository: nexus3.onap.org:10001
+image: onap/org.onap.dcaegen2.deployments.k8s-bootstrap-container:1.1.11
+
+# DCAE component images to be deployed via Cloudify Manager
+# Use to override default setting in blueprints
+componentImages:
+  #TODO for further investigation: input template expansion issues if we comment this out
+  config_binding_service: onap/org.onap.dcaegen2.platform.configbinding:2.1.5
+  deployment_handler: onap/org.onap.dcaegen2.platform.deployment-handler:2.1.5
+  holmes_engine: onap/holmes/engine-management:1.1.0
+  holmes_rules: onap/holmes/rule-management:1.1.0
+  inventory: onap/org.onap.dcaegen2.platform.inventory-api:3.0.1
+  policy_handler: onap/org.onap.dcaegen2.platform.policy-handler:2.4.5
+  service_change_handler: onap/org.onap.dcaegen2.platform.servicechange-handler:1.1.4
+  tca: onap/org.onap.dcaegen2.deployments.tca-cdap-container:1.1.0
+  ves: onap/org.onap.dcaegen2.collectors.ves.vescollector:1.2.0
+
+# Kubernetes namespace for components deployed via Cloudify manager
+# If empty, use the common namespace
+# dcae_ns: "onap"
+

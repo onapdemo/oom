@@ -1,1 +1,16 @@
+# Application
 kubernetes/config/onap-parameters.yaml
+kubernetes/dist/*
+requirements.lock
+**/charts/*.tgz
+
+
+# Eclipse
+.classpath
+.factorypath
+.project
+.settings/
+
+# IntelliJ
+.idea/*
+*.iml
