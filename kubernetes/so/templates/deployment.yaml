@@ -118,6 +118,9 @@ spec:
           - mountPath: /var/berks-cookbooks/mso-config/files/default/mso-bpmn-config/logback.bpmn.xml
             name: so-logback
             subPath: logback.bpmn.xml
+          - mountPath: /var/berks-cookbooks/mso-config/files/default/mso-bpmn-config/logback.multivim.xml
+            name: so-logback
+            subPath: logback.multivim.xml
           - mountPath: /var/berks-cookbooks/mso-config/files/default/mso-workflow-message-adapter-config/logback.workflow-message-adapter.xml
             name: so-logback
             subPath: logback.workflow-message-adapter.xml

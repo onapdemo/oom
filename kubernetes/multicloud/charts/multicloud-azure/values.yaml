@@ -17,26 +17,24 @@
 #################################################################
 global:
   nodePortPrefix: 302
-  readinessRepository: oomk8s
-  readinessImage: readiness-check:2.0.0
-  loggingRepository: docker.elastic.co
-  loggingImage: beats/filebeat:5.5.0
 
 #################################################################
 # Application configuration defaults.
 #################################################################
 # application image
 repository: elhaydox
-image: sdc-backend:1.2.0_azure-1.1.0
-backendInitImage: onap/sdc-backend-init:1.2.0
+image: multicloud-azure:azure_1.0.0
 pullPolicy: Always
 
-# flag to enable debugging - application support required
-debugEnabled: false
-
+# application configuration
 config:
-  javaOptions: "-Xdebug -agentlib:jdwp=transport=dt_socket,address=4000,server=y,suspend=n -Xmx1536m -Xms1536m"
-  cassandraSslEnabled: "false"
+  msbgateway: msb-iag
+  msbPort: 80
+  aai:
+    port: 8443
+    schemaVersion: v13
+    username: AAI
+    password: AAI
 
 # default number of instances
 replicaCount: 1
@@ -47,24 +45,19 @@ affinity: {}
 
 # probe configuration parameters
 liveness:
-  initialDelaySeconds: 120
-  periodSeconds: 10
-  # necessary to disable liveness probe when setting breakpoints
-  # in debugger so K8s doesn't restart unresponsive container
+  initialDelaySeconds: 30
+  periodSeconds: 100
+  timeoutSeconds: 10
+  successThreshold: 1
+  failureThreshold: 5
   enabled: true
-
-readiness:
-  initialDelaySeconds: 120
-  periodSeconds: 10
 
 service:
   type: NodePort
-  name: sdc-be
-  portName: sdc-be
-  nodePort: "04"
-  internalPort: 8443
-  nodePort2: "05"
-  internalPort2: 8080
+  name: multicloud-azure
+  externalPort: 5000
+  internalPort: 5000
+  nodePort: 98
 
 ingress:
   enabled: false

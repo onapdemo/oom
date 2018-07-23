@@ -136,7 +136,18 @@
       "bpel_auth": "786864AA53D0DCD881AED1154230C0C3058D58B9339D2EFB6193A0F0D82530E1",
       "bpel_timeout": "30"
     },
-
+    "mso-multivim-adapter-config":
+    {
+      "msb_endpoint_url": "http://{{.Values.config.msb.serviceName}}:{{.Values.config.msb.port}}/api/multicloud/v0",
+      "multivimbpelauth": "5119D1AF37F671FC01FFAD2151D93EFB2BBB503E879FD07104D024EDDF118FD1",
+      "sockettimeout": "30",
+      "connecttimeout":"30",
+      "retrycount": "5",
+      "retryinterval": "15",
+      "retrylist": "408,429,500,502,503,504,900",
+      "pollinterval": "15",
+      "polltimeout": "30"
+    },
     "mso-bpmn-config":
     {
       "urnFileSystemLoadingEnabled": "true"
@@ -191,6 +202,9 @@
       "sdncTimeoutFirewall": "20",
       "callbackRetryAttempts": "30",
       "callbackRetrySleepTime": "1000",
+      "homingAndAllocationServiceRestEndpoint": "http://localhost:8080/api/oof/v1/placement",
+      "adaptersMultiVimRestEndpoint": "http://localhost:8080/multivim/rest/v1/vnf",
+      "multivimTimeout": "PT30M",
       "appcClientTopicRead": "APPC-LCM-WRITE",
       "appcClientTopicWrite": "APPC-LCM-READ",
       "appcClientTopicSdncRead": "SDNC-LCM-WRITE",

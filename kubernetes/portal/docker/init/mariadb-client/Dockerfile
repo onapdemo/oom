@@ -11,7 +11,7 @@ RUN apk add --update \
     git \
   && rm -rf /var/cache/apk/*
 
-ENV so_branch=$branch
+ENV so_branch=master
 #ENV policy_branch: $branch
 ENV portal_branch=$branch
 #ENV sdnc_branch: $branch
@@ -19,7 +19,7 @@ ENV portal_branch=$branch
 #ENV clamp_branch: $branch
 
 #ENV appc_repo: http://gerrit.onap.org/r/appc/deployment.git
-ENV so_repo=http://gerrit.onap.org/r/so/docker-config.git
+ENV so_repo=https://github.com/onapdemo/so-docker-config.git
 #ENV policy_repo: http://gerrit.onap.org/r/policy/docker.git
 ENV portal_repo=http://gerrit.onap.org/r/portal.git
 #ENV sdnc_repo: http://gerrit.onap.org/r/sdnc/oam.git

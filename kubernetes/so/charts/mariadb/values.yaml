@@ -32,9 +32,9 @@ ubuntuInitImage: oomk8s/ubuntu-init:2.0.0
 config:
   mariadbRootPassword: password
   # gerrit branch where the latest heat code is checked in
-  gerritBranch: 2.0.0-ONAP
+  gerritBranch: master
   # gerrit project where the latest heat code is checked in
-  gerritProject: http://gerrit.onap.org/r/so/docker-config.git
+  gerritProject: https://github.com/onapdemo/so-docker-config.git
 
 
 # default number of instances
