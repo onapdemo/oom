@@ -26,7 +26,8 @@ global:
 # Application configuration defaults.
 #################################################################
 # application image
-repository: elhaydox
+repository: nexus3.onap.org:10001
+azureRepository: elhaydox
 image: sdc-backend:1.2.0_azure-1.1.0
 backendInitImage: onap/sdc-backend-init:1.2.0
 pullPolicy: Always
