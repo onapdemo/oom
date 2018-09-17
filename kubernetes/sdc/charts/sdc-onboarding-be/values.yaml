@@ -27,8 +27,7 @@ global:
 #################################################################
 # application image
 repository: nexus3.onap.org:10001
-azureRepository: elhaydox
-image: sdc-onboard-backend:1.2.0_azure-1.1.0
+image: onap/sdc-onboard-backend:1.2.0
 onboardingInitImage: onap/sdc-onboard-cassandra-init:1.2.0
 pullPolicy: Always
 
